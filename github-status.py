@@ -49,7 +49,7 @@ def get_runs(token, repository):
 
 def authenticate():
     response = requests.post("https://github.com/login/device/code",
-                             data={'client_id': 'c987946a3420d3a1f311', 'scope': 'workflow'},
+                             data={'client_id': 'c987946a3420d3a1f311', 'scope': 'workflow repo'},
                              headers={'Accept': 'application/vnd.github.v3+json'})
     details = response.json()
     webbrowser.open(details['verification_uri'])
