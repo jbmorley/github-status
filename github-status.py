@@ -99,7 +99,7 @@ def main():
         with open(SETTINGS_PATH, "wb") as fh:
             pickle.dump( {"access_token": access_token}, fh)
 
-    for repository in options.repository:
+    for repository in sorted(options.repository):
         runs = get_runs(access_token, repository)
         workflow_runs = [workflow_run for workflow_run in runs['workflow_runs']
                          if workflow_run['head_branch'] == 'main' or workflow_run['head_branch'] == 'master']
