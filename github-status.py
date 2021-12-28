@@ -105,7 +105,7 @@ def main():
                          if workflow_run['head_branch'] == 'main' or workflow_run['head_branch'] == 'master']
         workflow_run = workflow_runs[0]
         conclusion = workflow_run['conclusion']
-        termcolor.cprint(repository, color(workflow_run))
+        termcolor.cprint("https://github.com/" + repository, color(workflow_run))
 
 
 if __name__ == "__main__":
