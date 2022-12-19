@@ -4,6 +4,14 @@ Light-weight command line utility for showing the status of GitHub projects
 
 ![](screenshot.png)
 
+## Installation
+
+```bash
+git clone https://github.com/jbmorley/github-status.git
+cd github-status
+pipenv install
+```
+
 ## Usage
 
 Quickly report on recent actions by passing the repository on the command-line:
