@@ -40,8 +40,15 @@ import yaml
 
 
 SETTINGS_PATH = os.path.expanduser("~/.github-status")
-CONFIGURATION_PATH = os.path.expanduser("~/.github-status-configuration.yaml")
-CLIENT_ID = os.environ["GITHUB_STATUS_CLIENT_ID"]
+
+CONFIGURATION_ENVIRONMENT_VARIABLE = "GITHUB_STATUS_CONFIGURATION"
+CLIENT_ID_ENVIRONMENT_VARIABLE = "GITHUB_STATUS_CLIENT_ID"
+
+if CONFIGURATION_ENVIRONMENT_VARIABLE in os.environ:
+    CONFIGURATION_PATH = os.environ[CONFIGURATION_ENVIRONMENT_VARIABLE]
+else:
+    CONFIGURATION_PATH = os.path.expanduser("~/.github-status-configuration.yaml")
+CLIENT_ID = os.environ[CLIENT_ID_ENVIRONMENT_VARIABLE]
 
 
 class WorkflowRun(object):
@@ -194,9 +201,29 @@ def authenticate():
 
     return access_token
 
+DESCRIPTION = """
+Display the status of your GitHub projects.
+
+Quickly report on recent actions by passing the repository on the command-line:
+
+    github-status inseven/fileaway
+
+Multiple repositories can be collected into one report by passing each
+repository as a new argument:
+
+    github-status inseven/fileaway inseven/bookmarks inseven/symbolic
+
+Configuration
+-------------
+
+If no command-line arguments are passed, Github Status will look for a
+configuration file in `~/.github-status-configuration.yaml`, or in the location
+specified in the `GITHUB_STATUS_CONFIGURATION` environment variable (if set).
+"""
+
 
 def main():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(description=DESCRIPTION, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('repository', nargs='*', default=[])
     options = parser.parse_args()
 
@@ -219,12 +246,15 @@ def main():
         for repository in options.repository]
 
     # Load the configuration if no repositories have been specified.
-    if not repositories:
-        with open(CONFIGURATION_PATH) as fh:
-            configuration = yaml.load(fh, Loader=yaml.SafeLoader)
-            for repository in configuration['repositories']:
-                repository = merge_dicts(configuration["defaults"] if "defaults" in configuration else {}, repository)
-                repositories.append(repository)
+    try:
+        if not repositories:
+            with open(CONFIGURATION_PATH) as fh:
+                configuration = yaml.load(fh, Loader=yaml.SafeLoader)
+                for repository in configuration['repositories']:
+                    repository = merge_dicts(configuration["defaults"] if "defaults" in configuration else {}, repository)
+                    repositories.append(repository)
+    except Exception as e:
+        exit("Failed to load configuration with error '%s'." % e)
 
     workflow_runs = []
     for repository_details in repositories:
