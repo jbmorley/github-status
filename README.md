@@ -1,4 +1,4 @@
-# github-status
+# GitHub Status
 
 Light-weight command line utility for showing the status of GitHub projects
 
@@ -28,7 +28,7 @@ github-status inseven/fileaway inseven/bookmarks inseven/symbolic
 
 ### Configuration
 
-For more nuanced reporting, `github-status` supports a global configuration file (`~/.github-status-configuration.yaml`)  which will be used when no command-line arguments are passed. This lets you select the number of historical builds that are reported, require results for specific workflows, and require workflow runs come from specific branches (`main` and `master` are assumed by default).
+For more nuanced reporting, GitHub Status supports a global configuration file (`~/.github-status-configuration.yaml`)  which will be used when no command-line arguments are passed. This lets you select the number of historical builds that are reported, require results for specific workflows, and require workflow runs come from specific branches (`main` and `master` are assumed by default).
 
 For example, my configuration file looks like this:
 
