@@ -179,6 +179,8 @@ def authenticate():
                              data={'client_id': 'c987946a3420d3a1f311', 'scope': 'workflow repo'},
                              headers={'Accept': 'application/vnd.github.v3+json'})
     details = response.json()
+    if "error" in details:
+        exit(details['error_description'])
     webbrowser.open(details['verification_uri'])
 
     print(details['user_code'])
