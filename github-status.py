@@ -106,11 +106,22 @@ class WorkflowRun(object):
 
     @property
     def status(self):
-        return termcolor.colored(self.repository, self.color, attrs=["reverse"])
+        return termcolor.colored(self.repository, self.color)
 
     @property
     def html_url(self):
         return self._details["html_url"]
+
+
+class MissingWorkflowRun(object):
+
+    def __init__(self, repository, name):
+        self.repository = repository
+        self.name = name
+        self.age = 0
+        self.age_summary = termcolor.colored("-", "red")
+        self.status = termcolor.colored(repository, "red")
+        self.html_url = "https://github.com/" + repository + "/actions"
 
 
 class Spinner(object):
@@ -169,7 +180,8 @@ def get_filtered_workflow_runs(token, details):
     if "workflows" in details:
         for workflow in details["workflows"]:
             if workflow not in counts:
-                exit("No runs for workflow '%s' for repository '%s'." % (workflow, details["name"]))
+                workflows.append(MissingWorkflowRun(repository=details["name"], name=workflow))
+                # exit("No runs for workflow '%s' for repository '%s'." % (workflow, details["name"]))
 
     return workflows
 
