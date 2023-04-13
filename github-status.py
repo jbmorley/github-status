@@ -48,7 +48,6 @@ if CONFIGURATION_ENVIRONMENT_VARIABLE in os.environ:
     CONFIGURATION_PATH = os.environ[CONFIGURATION_ENVIRONMENT_VARIABLE]
 else:
     CONFIGURATION_PATH = os.path.expanduser("~/.github-status-configuration.yaml")
-CLIENT_ID = os.environ[CLIENT_ID_ENVIRONMENT_VARIABLE]
 
 
 class WorkflowRun(object):
@@ -186,9 +185,9 @@ def get_filtered_workflow_runs(token, details):
     return workflows
 
 
-def authenticate():
+def authenticate(client_id):
     response = requests.post("https://github.com/login/device/code",
-                             data={'client_id': 'c987946a3420d3a1f311', 'scope': 'workflow repo'},
+                             data={'client_id': client_id, 'scope': 'workflow repo'},
                              headers={'Accept': 'application/vnd.github.v3+json'})
     details = response.json()
     if "error" in details:
@@ -203,7 +202,7 @@ def authenticate():
     while True:
         time.sleep(interval)
         response = requests.post("https://github.com/login/oauth/access_token",
-                         data={'client_id': CLIENT_ID,
+                         data={'client_id': client_id,
                                'device_code': device_code,
                                'grant_type': 'urn:ietf:params:oauth:grant-type:device_code'},
                          headers={'Accept': 'application/vnd.github.v3+json'}).json()
@@ -236,39 +235,54 @@ specified in the `GITHUB_STATUS_CONFIGURATION` environment variable (if set).
 """
 
 
+def load_configuration():
+    try:
+        repositories = []
+        with open(CONFIGURATION_PATH) as fh:
+            configuration = yaml.load(fh, Loader=yaml.SafeLoader)
+            for repository in configuration['repositories']:
+                repository = merge_dicts(configuration["defaults"] if "defaults" in configuration else {}, repository)
+                repositories.append(repository)
+        return (configuration, repositories)
+    except Exception as e:
+        exit("Failed to load configuration with error '%s'." % e)
+
+
 def main():
     parser = argparse.ArgumentParser(description=DESCRIPTION, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('repository', nargs='*', default=[])
     options = parser.parse_args()
 
+    # Load the configuration.
+    configuration, repositories = load_configuration()
+
+    # Get the client id.
+    # First try loading it from the environment and, if it's not present, load from the configuration file.
+    try:
+        client_id = os.environ[CLIENT_ID_ENVIRONMENT_VARIABLE]
+    except KeyError:
+        client_id = configuration['defaults']['client_id']
+
+    # Get the stored authentication session or re-authenticate.
     access_token = None
     if os.path.exists(SETTINGS_PATH):
         with open(SETTINGS_PATH, "rb") as fh:
             config = pickle.load(fh)
         access_token = config["access_token"]
     if access_token is None:
-        access_token = authenticate()
+        access_token = authenticate(client_id=client_id)
         with open(SETTINGS_PATH, "wb") as fh:
             pickle.dump( {"access_token": access_token}, fh)
 
     # Convert the command-line options into the richer configuration format.
-    repositories = [{
-            "name": repository,
-            "branches": ["main", "master"],
-            "limit": 1
-        }
-        for repository in options.repository]
-
-    # Load the configuration if no repositories have been specified.
-    try:
-        if not repositories:
-            with open(CONFIGURATION_PATH) as fh:
-                configuration = yaml.load(fh, Loader=yaml.SafeLoader)
-                for repository in configuration['repositories']:
-                    repository = merge_dicts(configuration["defaults"] if "defaults" in configuration else {}, repository)
-                    repositories.append(repository)
-    except Exception as e:
-        exit("Failed to load configuration with error '%s'." % e)
+    # This overrides the repositories in the configuration.
+    if options.repository:
+        repositories = [{
+                "name": repository,
+                "branches": ["main", "master"],
+                "limit": 1
+            }
+            for repository in options.repository]
 
     workflow_runs = []
     for repository_details in repositories:
